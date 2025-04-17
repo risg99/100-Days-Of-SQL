@@ -1,0 +1,76 @@
+-- 𝐌𝐮𝐬𝐭 𝐓𝐫𝐲: Visa (Medium Level) #SQL Interview Question — Solution
+-- Identify the top 3 areas with the highest customer density. Customer density = 
+-- (total number of unique customers in the area / area size). Your output should include
+-- the area name and its calculated customer density.
+
+-- Database setup:
+CREATE TABLE TRANSACTION_RECORDS (
+	CUSTOMER_ID BIGINT,
+	STORE_ID BIGINT,
+	TRANSACTION_AMOUNT BIGINT,
+	TRANSACTION_DATE DATE,
+	TRANSACTION_ID BIGINT PRIMARY KEY
+);
+
+INSERT INTO
+	TRANSACTION_RECORDS (
+		CUSTOMER_ID,
+		STORE_ID,
+		TRANSACTION_AMOUNT,
+		TRANSACTION_DATE,
+		TRANSACTION_ID
+	)
+VALUES
+	(101, 1, 500, '2024-01-01 10:15:00', 10001),
+	(102, 2, 1500, '2024-01-02 12:30:00', 10002),
+	(103, 1, 700, '2024-01-03 14:00:00', 10003),
+	(104, 3, 1200, '2024-01-04 09:45:00', 10004),
+	(105, 2, 800, '2024-01-05 11:20:00', 10005);
+
+CREATE TABLE STORES (
+	AREA_NAME VARCHAR(20),
+	AREA_SIZE BIGINT,
+	STORE_ID BIGINT PRIMARY KEY,
+	STORE_LOCATION TEXT,
+	STORE_OPEN_DATE DATE
+);
+
+INSERT INTO
+	STORES (
+		AREA_NAME,
+		AREA_SIZE,
+		STORE_ID,
+		STORE_LOCATION,
+		STORE_OPEN_DATE
+	)
+VALUES
+	('Downtown', 1000, 1, 'Main Street', '2020-01-01'),
+	('Uptown', 1500, 2, 'Park Avenue', '2021-06-15'),
+	('Midtown', 1200, 3, 'Broadway', '2019-11-20'),
+	('Suburbs', 2000, 4, 'Elm Street', '2018-08-10');
+
+-- Query:
+WITH
+	CTE AS (
+		SELECT
+			STORE_ID,
+			COUNT(DISTINCT CUSTOMER_ID) CNT
+		FROM
+			TRANSACTION_RECORDS
+		GROUP BY
+			STORE_ID
+	)
+SELECT
+	AREA_NAME,
+	(CAST(CNT AS FLOAT) / B.AREA_SIZE) C_DEN
+FROM
+	CTE A
+	INNER JOIN STORES B ON A.STORE_ID = B.STORE_ID
+ORDER BY
+	C_DEN DESC
+LIMIT
+	3;
+
+-- Reset Database:
+DROP TABLE TRANSACTION_RECORDS;
+DROP TABLE STORES;
