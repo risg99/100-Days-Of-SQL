@@ -1,0 +1,84 @@
+-- 𝐌𝐮𝐬𝐭 𝐓𝐫𝐲: Amazon (Hard Level) #SQL Interview Question — Solution
+-- Write a query to return Territory and corresponding Sales Growth. Compare growth 
+-- between periods Q4-2021 vs Q3-2021. If Territory (say T123) has Sales worth $100 
+-- in Q3-2021 and Sales worth $110 in Q4-2021, then the Sales Growth will be 10% 
+-- [ i.e. = ((110 - 100)/100) * 100 ]
+-- Output the ID of the Territory and the Sales Growth. Only output these territories 
+-- that had any sales in both quarters.
+
+-- Database setup:
+CREATE TABLE FCT_CUSTOMER_SALE (
+	CUST_ID VARCHAR(50),
+	PROD_SKU_ID VARCHAR(50),
+	ORDER_DATE DATE,
+	ORDER_VALUE BIGINT,
+	ORDER_ID VARCHAR(50)
+);
+
+CREATE TABLE MAP_CUSTOMER_TERRITORIES (CUST_ID VARCHAR(50), TERRITORY_ID VARCHAR(50));
+
+INSERT INTO
+	FCT_CUSTOMER_SALE (
+		CUST_ID,
+		PROD_SKU_ID,
+		ORDER_DATE,
+		ORDER_VALUE,
+		ORDER_ID
+	)
+VALUES
+	('C001', 'P100', '2021-07-15', 100, 'O1001'),
+	('C002', 'P101', '2021-07-20', 200, 'O1002'),
+	('C001', 'P100', '2021-10-05', 150, 'O1003'),
+	('C002', 'P101', '2021-10-10', 250, 'O1004'),
+	('C003', 'P102', '2021-08-22', 180, 'O1005'),
+	('C003', 'P102', '2021-11-30', 210, 'O1006');
+
+INSERT INTO
+	MAP_CUSTOMER_TERRITORIES (CUST_ID, TERRITORY_ID)
+VALUES
+	('C001', 'T001'),
+	('C002', 'T002'),
+	('C003', 'T003');
+
+-- Query:
+WITH
+	QUARTERLY_SALES AS (
+		SELECT
+			T.TERRITORY_ID,
+			EXTRACT(
+				QUARTER
+				FROM
+					ORDER_DATE
+			) AS QUARTER,
+			EXTRACT(
+				YEAR
+				FROM
+					ORDER_DATE
+			) AS YEAR,
+			SUM(ORDER_VALUE) AS TOTAL_SALES
+		FROM
+			FCT_CUSTOMER_SALE F
+			JOIN MAP_CUSTOMER_TERRITORIES T ON F.CUST_ID = T.CUST_ID
+		WHERE
+			ORDER_DATE BETWEEN '2021-07-01' AND '2021-12-31'
+		GROUP BY
+			T.TERRITORY_ID,
+			QUARTER,
+			YEAR
+	)
+SELECT
+	Q4.TERRITORY_ID,
+	(Q4.TOTAL_SALES - Q3.TOTAL_SALES) * 100.0 / Q3.TOTAL_SALES AS SALES_GROWTH_PERC
+FROM
+	QUARTERLY_SALES Q4
+	JOIN QUARTERLY_SALES Q3 ON Q4.TERRITORY_ID = Q3.TERRITORY_ID
+	AND Q4.YEAR = 2021
+	AND Q4.QUARTER = 4
+	AND Q3.YEAR = 2021
+	AND Q3.QUARTER = 3
+WHERE
+	Q3.TOTAL_SALES > 0;
+
+-- Reset Database:
+DROP TABLE FCT_CUSTOMER_SALE;
+DROP TABLE MAP_CUSTOMER_TERRITORIES;
