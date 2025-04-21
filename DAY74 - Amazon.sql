@@ -1,0 +1,102 @@
+-- 𝐌𝐮𝐬𝐭 𝐓𝐫𝐲: Amazon (Hard Level) #SQL Interview Question — Solution
+-- Write a query to find the Market Share at the Product Brand level for each Territory, 
+-- for Time Period Q4-2021. Market Share is the number of Products of a certain Product 
+-- Brand brand sold in a territory, divided by the total number of Products sold in this 
+-- Territory.
+-- Output the ID of the Territory, name of the Product Brand and the corresponding Market
+-- Share in percentages. Only include these Product Brands that had at least one sale in 
+-- a given territory.
+
+-- Database setup:
+CREATE TABLE FCT_CUSTOMER_SALES (
+	CUST_ID VARCHAR(50),
+	PROD_SKU_ID VARCHAR(50),
+	ORDER_DATE DATE,
+	ORDER_VALUE BIGINT,
+	ORDER_ID VARCHAR(50)
+);
+
+CREATE TABLE MAP_CUSTOMER_TERRITORY (CUST_ID VARCHAR(50), TERRITORY_ID VARCHAR(50));
+
+CREATE TABLE DIM_PRODUCT (
+	PROD_SKU_ID VARCHAR(50),
+	PROD_SKU_NAME VARCHAR(255),
+	PROD_BRAND VARCHAR(100),
+	MARKET_NAME VARCHAR(100)
+);
+
+INSERT INTO
+	FCT_CUSTOMER_SALES (
+		CUST_ID,
+		PROD_SKU_ID,
+		ORDER_DATE,
+		ORDER_VALUE,
+		ORDER_ID
+	)
+VALUES
+	('C001', 'P001', '2021-10-15', 100, 'O1001'),
+	('C002', 'P002', '2021-11-20', 200, 'O1002'),
+	('C003', 'P003', '2021-12-05', 150, 'O1003'),
+	('C001', 'P002', '2021-12-10', 300, 'O1004'),
+	('C002', 'P001', '2021-11-18', 250, 'O1005');
+
+INSERT INTO
+	MAP_CUSTOMER_TERRITORY (CUST_ID, TERRITORY_ID)
+VALUES
+	('C001', 'T001'),
+	('C002', 'T002'),
+	('C003', 'T001');
+
+INSERT INTO
+	DIM_PRODUCT (
+		PROD_SKU_ID,
+		PROD_SKU_NAME,
+		PROD_BRAND,
+		MARKET_NAME
+	)
+VALUES
+	('P001', 'Product A', 'Brand X', 'Market 1'),
+	('P002', 'Product B', 'Brand Y', 'Market 2'),
+	('P003', 'Product C', 'Brand X', 'Market 1');
+
+-- Query:
+WITH
+	SALES_DATA AS (
+		SELECT
+			T.TERRITORY_ID,
+			P.PROD_BRAND,
+			COUNT(S.PROD_SKU_ID) AS BRAND_SALES
+		FROM
+			FCT_CUSTOMER_SALES S
+			JOIN MAP_CUSTOMER_TERRITORY T ON S.CUST_ID = T.CUST_ID
+			JOIN DIM_PRODUCT P ON S.PROD_SKU_ID = P.PROD_SKU_ID
+		WHERE
+			S.ORDER_DATE BETWEEN '2021-10-01' AND '2021-12-31'
+		GROUP BY
+			T.TERRITORY_ID,
+			P.PROD_BRAND
+	),
+	TOTAL_SALES_PER_TERRITORY AS (
+		SELECT
+			TERRITORY_ID,
+			SUM(BRAND_SALES) AS TOTAL_SALES
+		FROM
+			SALES_DATA
+		GROUP BY
+			TERRITORY_ID
+	)
+SELECT
+	S.TERRITORY_ID,
+	S.PROD_BRAND,
+	ROUND(S.BRAND_SALES * 100.0 / T.TOTAL_SALES, 2) AS MARKET_SHARE_PERCENTAGE
+FROM
+	SALES_DATA S
+	JOIN TOTAL_SALES_PER_TERRITORY T ON S.TERRITORY_ID = T.TERRITORY_ID
+ORDER BY
+	S.TERRITORY_ID,
+	MARKET_SHARE_PERCENTAGE DESC;
+
+-- Reset Database:
+DROP TABLE FCT_CUSTOMER_SALES;
+DROP TABLE MAP_CUSTOMER_TERRITORY;
+DROP TABLE DIM_PRODUCT;
